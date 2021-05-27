@@ -17,12 +17,13 @@ limitations under the License.
 package server
 
 import (
-	pgsqlsrv "github.com/codenotary/immudb/pkg/pgsql/server"
-	"github.com/codenotary/immudb/pkg/stream"
 	"net"
 	"net/http"
 	"os"
 	"sync"
+
+	pgsqlsrv "github.com/codenotary/immudb/pkg/pgsql/server"
+	"github.com/codenotary/immudb/pkg/stream"
 
 	"github.com/codenotary/immudb/pkg/database"
 	"github.com/rs/xid"
@@ -57,7 +58,7 @@ type ImmuServer struct {
 	userdata    *usernameToUserdataMap
 	multidbmode bool
 	//Cc                  CorruptionChecker
-	sysDb                database.DB
+	sysDB                database.DB
 	metricsServer        *http.Server
 	webServer            *http.Server
 	mux                  sync.Mutex
