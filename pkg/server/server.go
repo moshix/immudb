@@ -328,7 +328,6 @@ func (s *ImmuServer) loadSystemDatabase(dataDir string, adminPassword string) er
 	op := database.DefaultOption().
 		WithDbName(s.Options.GetSystemAdminDbName()).
 		WithDbRootPath(dataDir).
-		WithDbRootPath(s.Options.Dir).
 		WithStoreOptions(storeOpts)
 
 	_, sysDbErr := s.OS.Stat(systemDbRootDir)
@@ -369,7 +368,6 @@ func (s *ImmuServer) loadDefaultDatabase(dataDir string) error {
 	op := database.DefaultOption().
 		WithDbName(s.Options.GetDefaultDbName()).
 		WithDbRootPath(dataDir).
-		WithDbRootPath(s.Options.Dir).
 		WithStoreOptions(s.Options.StoreOptions)
 
 	_, defaultDbErr := s.OS.Stat(defaultDbRootDir)
@@ -421,7 +419,6 @@ func (s *ImmuServer) loadUserDatabases(dataDir string) error {
 		op := database.DefaultOption().
 			WithDbName(dbname).
 			WithDbRootPath(dataDir).
-			WithDbRootPath(s.Options.Dir).
 			WithStoreOptions(s.Options.StoreOptions)
 
 		db, err := database.OpenDb(op, s.sysDb, s.Logger)
@@ -931,7 +928,6 @@ func (s *ImmuServer) CreateDatabase(ctx context.Context, newdb *schema.Database)
 	op := database.DefaultOption().
 		WithDbName(newdb.DatabaseName).
 		WithDbRootPath(dataDir).
-		WithDbRootPath(s.Options.Dir).
 		WithStoreOptions(s.Options.StoreOptions)
 
 	db, err := database.NewDb(op, s.sysDb, s.Logger)
