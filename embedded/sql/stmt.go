@@ -137,7 +137,9 @@ func (stmt *CreateDatabaseStmt) isDDL() bool {
 }
 
 func (stmt *CreateDatabaseStmt) CompileUsing(e *Engine, implicitDB *Database, params map[string]interface{}) (ces, des []*store.KV, db *Database, err error) {
-	db, err = e.catalog.newDatabase(stmt.DB)
+	id := uint64(len(e.catalog.dbsByID) + 1)
+
+	db, err = e.catalog.newDatabase(id, stmt.DB)
 	if err != nil {
 		return nil, nil, nil, err
 	}
