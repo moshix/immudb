@@ -39,17 +39,14 @@ func (d *db) VerifiableSQLGet(req *schema.VerifiableSQLGetRequest) (*schema.Veri
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if !d.dbSelected {
-		err := d.sqlEngine.UseDatabase(d.options.dbName)
-		if err != nil {
-			return nil, ErrSQLNotReady
-		}
-		d.dbSelected = true
+	err := d.loadSQLEngine()
+	if err != nil {
+		return nil, err
 	}
 
 	txEntry := d.tx1
 
-	table, err := d.sqlEngine.Catalog().GetTableByName(d.options.dbName, req.SqlGetRequest.Table)
+	table, err := d.sqlEngine.Catalog().GetTableByName(dbInstanceName, req.SqlGetRequest.Table)
 	if err != nil {
 		return nil, err
 	}
@@ -158,15 +155,12 @@ func (d *db) ListTables() (*schema.SQLQueryResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if !d.dbSelected {
-		err := d.sqlEngine.UseDatabase(d.options.dbName)
-		if err != nil {
-			return nil, ErrSQLNotReady
-		}
-		d.dbSelected = true
+	err := d.loadSQLEngine()
+	if err != nil {
+		return nil, err
 	}
 
-	db, err := d.sqlEngine.Catalog().GetDatabaseByName(d.options.dbName)
+	db, err := d.sqlEngine.Catalog().GetDatabaseByName(dbInstanceName)
 	if err != nil {
 		return nil, err
 	}
@@ -184,15 +178,12 @@ func (d *db) DescribeTable(tableName string) (*schema.SQLQueryResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if !d.dbSelected {
-		err := d.sqlEngine.UseDatabase(d.options.dbName)
-		if err != nil {
-			return nil, ErrSQLNotReady
-		}
-		d.dbSelected = true
+	err := d.loadSQLEngine()
+	if err != nil {
+		return nil, err
 	}
 
-	table, err := d.sqlEngine.Catalog().GetTableByName(d.options.dbName, tableName)
+	table, err := d.sqlEngine.Catalog().GetTableByName(dbInstanceName, tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -266,12 +257,13 @@ func (d *db) SQLExecPrepared(stmts []sql.SQLStmt, namedParams []*schema.NamedPar
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	if !d.dbSelected {
-		err := d.sqlEngine.UseDatabase(d.options.dbName)
-		if err != nil {
-			return nil, ErrSQLNotReady
-		}
-		d.dbSelected = true
+	if d.options.replica {
+		return nil, ErrIsReplica
+	}
+
+	err := d.loadSQLEngine()
+	if err != nil {
+		return nil, err
 	}
 
 	params := make(map[string]interface{})
@@ -304,6 +296,14 @@ func (d *db) SQLExecPrepared(stmts []sql.SQLStmt, namedParams []*schema.NamedPar
 func (d *db) UseSnapshot(req *schema.UseSnapshotRequest) error {
 	if req == nil {
 		return ErrIllegalArguments
+	}
+
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	err := d.loadSQLEngine()
+	if err != nil {
+		return err
 	}
 
 	return d.sqlEngine.UseSnapshot(req.SinceTx, req.AsBeforeTx)
@@ -339,12 +339,9 @@ func (d *db) SQLQueryPrepared(stmt *sql.SelectStmt, namedParams []*schema.NamedP
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	if !d.dbSelected {
-		err := d.sqlEngine.UseDatabase(d.options.dbName)
-		if err != nil {
-			return nil, ErrSQLNotReady
-		}
-		d.dbSelected = true
+	err := d.loadSQLEngine()
+	if err != nil {
+		return nil, err
 	}
 
 	params := make(map[string]interface{})
