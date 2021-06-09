@@ -86,7 +86,8 @@ type DB interface {
 type db struct {
 	st *store.ImmuStore
 
-	sqlEngine *sql.Engine
+	sqlEngine  *sql.Engine
+	dbSelected bool
 
 	tx1, tx2 *store.Tx
 	mutex    sync.RWMutex
@@ -132,6 +133,8 @@ func OpenDb(op *DbOptions, systemDB DB, log logger.Logger) (DB, error) {
 		return nil, logErr(dbi.Logger, "Unable to open store: %s", err)
 	}
 
+	dbi.dbSelected = err == nil
+
 	if err == sql.ErrDatabaseDoesNotExist && !op.replica {
 		dbi.Logger.Infof("Migrating catalog from systemdb to %s...", dbDir)
 
@@ -169,6 +172,8 @@ func OpenDb(op *DbOptions, systemDB DB, log logger.Logger) (DB, error) {
 		if err != nil {
 			return nil, logErr(dbi.Logger, "Unable to open store: %s", err)
 		}
+
+		dbi.dbSelected = true
 	}
 
 	return dbi, nil
