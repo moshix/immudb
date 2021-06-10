@@ -39,9 +39,11 @@ func (d *db) VerifiableSQLGet(req *schema.VerifiableSQLGetRequest) (*schema.Veri
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	err := d.loadSQLEngine()
-	if err != nil {
-		return nil, err
+	if d.options.replica {
+		err := d.reloadSQLCatalog()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	txEntry := d.tx1
@@ -155,9 +157,11 @@ func (d *db) ListTables() (*schema.SQLQueryResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	err := d.loadSQLEngine()
-	if err != nil {
-		return nil, err
+	if d.options.replica {
+		err := d.reloadSQLCatalog()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	db, err := d.sqlEngine.Catalog().GetDatabaseByName(dbInstanceName)
@@ -178,9 +182,11 @@ func (d *db) DescribeTable(tableName string) (*schema.SQLQueryResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	err := d.loadSQLEngine()
-	if err != nil {
-		return nil, err
+	if d.options.replica {
+		err := d.reloadSQLCatalog()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	table, err := d.sqlEngine.Catalog().GetTableByName(dbInstanceName, tableName)
@@ -261,11 +267,6 @@ func (d *db) SQLExecPrepared(stmts []sql.SQLStmt, namedParams []*schema.NamedPar
 		return nil, ErrIsReplica
 	}
 
-	err := d.loadSQLEngine()
-	if err != nil {
-		return nil, err
-	}
-
 	params := make(map[string]interface{})
 
 	for _, p := range namedParams {
@@ -301,9 +302,11 @@ func (d *db) UseSnapshot(req *schema.UseSnapshotRequest) error {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	err := d.loadSQLEngine()
-	if err != nil {
-		return err
+	if d.options.replica {
+		err := d.reloadSQLCatalog()
+		if err != nil {
+			return err
+		}
 	}
 
 	return d.sqlEngine.UseSnapshot(req.SinceTx, req.AsBeforeTx)
@@ -339,9 +342,11 @@ func (d *db) SQLQueryPrepared(stmt *sql.SelectStmt, namedParams []*schema.NamedP
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	err := d.loadSQLEngine()
-	if err != nil {
-		return nil, err
+	if d.options.replica {
+		err := d.reloadSQLCatalog()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	params := make(map[string]interface{})
