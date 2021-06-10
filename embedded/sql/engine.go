@@ -110,7 +110,7 @@ func NewEngine(catalogStore, dataStore *store.ImmuStore, prefix []byte) (*Engine
 
 	copy(e.prefix, prefix)
 
-	err := e.loadCatalog()
+	err := e.LoadCatalog()
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func NewEngine(catalogStore, dataStore *store.ImmuStore, prefix []byte) (*Engine
 	return e, nil
 }
 
-func (e *Engine) loadCatalog() error {
+func (e *Engine) LoadCatalog() error {
 	e.catalog = nil
 
 	lastTxID, _ := e.catalogStore.Alh()
@@ -984,7 +984,7 @@ func (e *Engine) QueryStmt(sql string, params map[string]interface{}, renewSnaps
 
 func (e *Engine) Query(sql io.ByteReader, params map[string]interface{}, renewSnapshot bool) (RowReader, error) {
 	if e.catalog == nil {
-		err := e.loadCatalog()
+		err := e.LoadCatalog()
 		if err != nil {
 			return nil, err
 		}
@@ -1042,7 +1042,7 @@ func (e *Engine) ExecStmt(sql string, params map[string]interface{}, waitForInde
 
 func (e *Engine) Exec(sql io.ByteReader, params map[string]interface{}, waitForIndexing bool) (ddTxs, dmTxs []*store.TxMetadata, err error) {
 	if e.catalog == nil {
-		err := e.loadCatalog()
+		err := e.LoadCatalog()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -1085,7 +1085,7 @@ func (e *Engine) ExecPreparedStmts(stmts []SQLStmt, params map[string]interface{
 		if len(centries) > 0 {
 			txmd, err := e.catalogStore.Commit(centries, waitForIndexing)
 			if err != nil {
-				return ddTxs, dmTxs, e.loadCatalog()
+				return ddTxs, dmTxs, e.LoadCatalog()
 			}
 
 			ddTxs = append(ddTxs, txmd)
