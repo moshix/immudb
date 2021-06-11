@@ -39,7 +39,7 @@ func (d *db) VerifiableSQLGet(req *schema.VerifiableSQLGetRequest) (*schema.Veri
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if d.options.replica {
+	if d.isReplica() {
 		err := d.reloadSQLCatalog()
 		if err != nil {
 			return nil, err
@@ -157,7 +157,7 @@ func (d *db) ListTables() (*schema.SQLQueryResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if d.options.replica {
+	if d.isReplica() {
 		err := d.reloadSQLCatalog()
 		if err != nil {
 			return nil, err
@@ -182,7 +182,7 @@ func (d *db) DescribeTable(tableName string) (*schema.SQLQueryResult, error) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if d.options.replica {
+	if d.isReplica() {
 		err := d.reloadSQLCatalog()
 		if err != nil {
 			return nil, err
@@ -263,7 +263,7 @@ func (d *db) SQLExecPrepared(stmts []sql.SQLStmt, namedParams []*schema.NamedPar
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	if d.options.replica {
+	if d.isReplica() {
 		return nil, ErrIsReplica
 	}
 
@@ -302,7 +302,7 @@ func (d *db) UseSnapshot(req *schema.UseSnapshotRequest) error {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	if d.options.replica {
+	if d.isReplica() {
 		err := d.reloadSQLCatalog()
 		if err != nil {
 			return err
@@ -342,7 +342,7 @@ func (d *db) SQLQueryPrepared(stmt *sql.SelectStmt, namedParams []*schema.NamedP
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
-	if d.options.replica {
+	if d.isReplica() {
 		err := d.reloadSQLCatalog()
 		if err != nil {
 			return nil, err
