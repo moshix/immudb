@@ -18,14 +18,15 @@ package server
 
 import (
 	"context"
+	"os"
+	"testing"
+
 	"github.com/codenotary/immudb/pkg/api/schema"
 	"github.com/codenotary/immudb/pkg/auth"
 	"github.com/codenotary/immudb/pkg/database"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"os"
-	"testing"
 )
 
 func TestServerLogin(t *testing.T) {
@@ -101,7 +102,7 @@ func TestServerListUsersAdmin(t *testing.T) {
 	md := metadata.Pairs("authorization", lr.Token)
 	ctx = metadata.NewIncomingContext(context.Background(), md)
 
-	newdb := &schema.Database{
+	newdb := &schema.DatabaseSettings{
 		DatabaseName: testDatabase,
 	}
 	_, err = s.CreateDatabase(ctx, newdb)
@@ -113,7 +114,7 @@ func TestServerListUsersAdmin(t *testing.T) {
 	require.NoError(t, err)
 
 	s.dbList = database.NewDatabaseList()
-	s.sysDb = nil
+	s.sysDB = nil
 
 	err = s.loadSystemDatabase(s.Options.Dir, auth.SysAdminPassword)
 	require.NoError(t, err)
@@ -238,7 +239,7 @@ func TestServerUsermanagement(t *testing.T) {
 	md := metadata.Pairs("authorization", lr.Token)
 	ctx = metadata.NewIncomingContext(context.Background(), md)
 
-	newdb := &schema.Database{
+	newdb := &schema.DatabaseSettings{
 		DatabaseName: testDatabase,
 	}
 	_, err = s.CreateDatabase(ctx, newdb)
