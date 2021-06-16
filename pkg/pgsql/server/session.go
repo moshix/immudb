@@ -86,6 +86,8 @@ func (s *session) parseRawMessage(msg *rawMessage) interface{} {
 		return fm.ParseQueryMsg(msg.payload)
 	case 'X':
 		return fm.ParseTerminateMsg(msg.payload)
+	case 'P':
+		return fm.ParseParseMsg(msg.payload)
 	}
 	return nil
 }

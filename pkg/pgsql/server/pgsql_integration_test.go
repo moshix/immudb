@@ -17,6 +17,7 @@ limitations under the License.
 package server_test
 
 import (
+	"context"
 	"crypto/tls"
 	"database/sql"
 	"encoding/hex"
@@ -24,6 +25,7 @@ import (
 	"github.com/codenotary/immudb/pkg/pgsql/server/pgmeta"
 	"github.com/codenotary/immudb/pkg/server"
 	"github.com/codenotary/immudb/pkg/server/servertest"
+	"github.com/jackc/pgx/v4"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -572,4 +574,67 @@ func getRandomTableName() string {
 	rand.Seed(time.Now().UnixNano())
 	r := rand.Intn(100)
 	return fmt.Sprintf("table%d", r)
+}
+
+func TestPgsqlServer_ExtendedQuery(t *testing.T) {
+	td, _ := ioutil.TempDir("", "_pgsql")
+	options := server.DefaultOptions().WithDir(td).WithPgsqlServer(true).WithPgsqlServerPort(0)
+	bs := servertest.NewBufconnServer(options)
+
+	bs.Start()
+	defer bs.Stop()
+
+	defer os.RemoveAll(td)
+	defer os.Remove(".state-")
+
+	bs.WaitForPgsqlListener()
+
+	db, err := sql.Open("postgres", fmt.Sprintf("host=localhost port=%d sslmode=disable user=immudb dbname=defaultdb password=immudb", bs.Server.Srv.PgsqlSrv.GetPort()))
+	require.NoError(t, err)
+
+	table := getRandomTableName()
+	result, err := db.Exec(fmt.Sprintf("CREATE TABLE %s (id INTEGER, amount INTEGER, title VARCHAR, content BLOB, PRIMARY KEY id)", table))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	_, err = db.Exec(fmt.Sprintf("UPSERT INTO %s (id, amount, title) VALUES (1, 200, 'title 1')", table))
+	require.NoError(t, err)
+
+	var id int64
+	var amount int64
+	var title string
+	err = db.QueryRow(fmt.Sprintf("SELECT id, amount, title FROM %s where id=$1 and amount=$2", table), 1, 200).Scan(&id, &amount, &title)
+	require.NoError(t, err)
+}
+
+func TestPgsqlServer_ExtendedQueryPGxNamedStatements(t *testing.T) {
+	td, _ := ioutil.TempDir("", "_pgsql")
+	options := server.DefaultOptions().WithDir(td).WithPgsqlServer(true).WithPgsqlServerPort(0)
+	bs := servertest.NewBufconnServer(options)
+
+	bs.Start()
+	defer bs.Stop()
+
+	defer os.RemoveAll(td)
+	defer os.Remove(".state-")
+
+	bs.WaitForPgsqlListener()
+
+	db, err := pgx.Connect(context.Background(), fmt.Sprintf("host=localhost port=%d sslmode=disable user=immudb dbname=defaultdb password=immudb", bs.Server.Srv.PgsqlSrv.GetPort()))
+	require.NoError(t, err)
+	defer db.Close(context.Background())
+
+	table := getRandomTableName()
+	result, err := db.Exec(context.Background(), fmt.Sprintf("CREATE TABLE %s (id INTEGER, amount INTEGER, title VARCHAR, content BLOB, PRIMARY KEY id)", table))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	_, err = db.Exec(context.Background(), fmt.Sprintf("UPSERT INTO %s (id, amount, title) VALUES (1, 200, 'title 1')", table))
+	require.NoError(t, err)
+
+	var id int64
+	var amount int64
+	var title string
+	err = db.QueryRow(context.Background(), fmt.Sprintf("SELECT id, amount, title FROM %s where id=$1 and amount=$2", table), 1, 200).Scan(&id, &amount, &title)
+	require.NoError(t, err)
 }

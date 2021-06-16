@@ -68,6 +68,21 @@ func (s *session) HandleSimpleQueries() (err error) {
 				s.ErrorHandle(err)
 				continue
 			}
+		case fm.ParseMsg:
+			if _, err = s.writeMessage(bm.ParseComplete()); err != nil {
+				s.ErrorHandle(err)
+				continue
+			}
+			msg, err := s.nextMessage()
+			if err != nil {
+				if err == io.EOF {
+					s.log.Warningf("connection is closed")
+					return nil
+				}
+				s.ErrorHandle(err)
+				continue
+			}
+			println(msg)
 		default:
 			s.ErrorHandle(ErrUnknowMessageType)
 			continue
