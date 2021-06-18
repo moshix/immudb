@@ -79,6 +79,7 @@ func (s *session) nextMessage() (interface{}, error) {
 }
 
 func (s *session) parseRawMessage(msg *rawMessage) interface{} {
+	println(string(msg.t))
 	switch msg.t {
 	case 'p':
 		return fm.ParsePasswordMsg(msg.payload)
@@ -88,6 +89,12 @@ func (s *session) parseRawMessage(msg *rawMessage) interface{} {
 		return fm.ParseTerminateMsg(msg.payload)
 	case 'P':
 		return fm.ParseParseMsg(msg.payload)
+	case 'B':
+		return fm.ParseBindMsg(msg.payload)
+	case 'D':
+		return fm.ParseDescribeMsg(msg.payload)
+	case 'S':
+		return fm.ParseSyncMsg(msg.payload)
 	}
 	return nil
 }

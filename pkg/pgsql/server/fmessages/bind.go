@@ -19,22 +19,47 @@ package fmessages
 import (
 	"bufio"
 	"bytes"
-	"encoding/binary"
 	"log"
 )
 
+// Once a prepared statement exists, it can be readied for execution using a Bind message. The Bind message gives the
+// name of the source prepared statement (empty string denotes the unnamed prepared statement), the name of the destination
+// portal (empty string denotes the unnamed portal), and the values to use for any parameter placeholders present in the
+// prepared statement. The supplied parameter set must match those needed by the prepared statement. (If you declared
+// any void parameters in the Parse message, pass NULL values for them in the Bind message.) Bind also specifies
+// the format to use for any data returned by the query; the format can be specified overall, or per-column.
+// The response is either BindComplete or ErrorResponse.
+//
+// Note
+// The choice between text and binary output is determined by the format codes given in Bind, regardless of the SQL
+// command involved. The BINARY attribute in cursor declarations is irrelevant when using extended query protocol.
 type BindMsg struct {
-	portalName           string
-	preparedStatement    string
-	parametersCount      int16
-	parameterFormatCode  int16
-	parametersValueCount int16
-	parameters           [][]byte
+	portalName              []byte
+	preparedStatement       []byte
+	parametersCount         int16
+	parameterFormatCode     int16
+	parametersValueCount    int16
+	parameters              [][]byte
 	resultColumnFormatCodes int16
 }
 
 func ParseBindMsg(payload []byte) BindMsg {
+	b := bytes.NewBuffer(payload)
+	r := bufio.NewReader(b)
+	name, err := r.ReadBytes(0)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	return BindMsg{
+		portalName:              name,
+		preparedStatement:       nil,
+		parametersCount:         0,
+		parameterFormatCode:     0,
+		parametersValueCount:    0,
+		parameters:              nil,
+		resultColumnFormatCodes: 0,
+	}
 }
 
 /*

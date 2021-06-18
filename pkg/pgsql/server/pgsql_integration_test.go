@@ -635,6 +635,6 @@ func TestPgsqlServer_ExtendedQueryPGxNamedStatements(t *testing.T) {
 	var id int64
 	var amount int64
 	var title string
-	err = db.QueryRow(context.Background(), fmt.Sprintf("SELECT id, amount, title FROM %s where id=$1 and amount=$2", table), 1, 200).Scan(&id, &amount, &title)
+	err = db.QueryRow(context.Background(), fmt.Sprintf("SELECT id, amount, title FROM %s where id=$1 and amount=$2;", table), 1, 200).Scan(&id, &amount, &title)
 	require.NoError(t, err)
 }

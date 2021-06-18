@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"errors"
 	"github.com/codenotary/immudb/embedded/sql"
 	"github.com/codenotary/immudb/pkg/api/schema"
 	bm "github.com/codenotary/immudb/pkg/pgsql/server/bmessages"
@@ -64,25 +65,97 @@ func (s *session) HandleSimpleQueries() (err error) {
 				}
 				continue
 			}
-			if err = s.queryMsg(v); err != nil {
+			// todo handle the result outside in order to avoid err suppression
+			if _, err = s.queryMsg(v.GetStatements()); err != nil {
 				s.ErrorHandle(err)
 				continue
 			}
 		case fm.ParseMsg:
-			if _, err = s.writeMessage(bm.ParseComplete()); err != nil {
-				s.ErrorHandle(err)
-				continue
-			}
-			msg, err := s.nextMessage()
+			var res *schema.SQLQueryResult
+			stmts, err := sql.Parse(strings.NewReader(v.GetStatements()))
 			if err != nil {
-				if err == io.EOF {
-					s.log.Warningf("connection is closed")
-					return nil
+				return err
+			}
+			for _, stmt := range stmts {
+				switch st := stmt.(type) {
+				case *sql.SelectStmt:
+					res, err = s.database.SQLQueryPrepared(st, nil, true)
+					if err != nil {
+						return err
+					}
+				default:
+					return errors.New("errore")
 				}
-				s.ErrorHandle(err)
-				continue
+
+				// Parse
+				if _, err = s.writeMessage(bm.ParseComplete()); err != nil {
+					s.ErrorHandle(err)
+					continue
+				}
+				// describe
+				msg, err := s.nextMessage()
+				if err != nil {
+					if err == io.EOF {
+						s.log.Warningf("connection is closed")
+						return nil
+					}
+					s.ErrorHandle(err)
+					continue
+				}
+				if describe, ok := msg.(fm.DescribeMsg); ok == false {
+					continue
+				} else {
+					// The Describe message (statement variant) specifies the name of an existing prepared statement
+					// (or an empty string for the unnamed prepared statement). The response is a ParameterDescription
+					// message describing the parameters needed by the statement, followed by a RowDescription message
+					// describing the rows that will be returned when the statement is eventually executed (or a NoData
+					// message if the statement will not return rows). ErrorResponse is issued if there is no such prepared
+					// statement. Note that since Bind has not yet been issued, the formats to be used for returned columns
+					// are not yet known to the backend; the format code fields in the RowDescription message will be zeroes
+					// in this case.
+					if describe.GetDescType() == "S" {
+						if _, err = s.writeMessage(bm.ParameterDescriptiom(len(res.Columns))); err != nil {
+							s.ErrorHandle(err)
+							continue
+						}
+						if _, err := s.writeMessage(bm.RowDescription(res.Columns)); err != nil {
+							s.ErrorHandle(err)
+						}
+					}
+					// The Describe message (portal variant) specifies the name of an existing portal (or an empty string
+					// for the unnamed portal). The response is a RowDescription message describing the rows that will be
+					// returned by executing the portal; or a NoData message if the portal does not contain a query that
+					// will return rows; or ErrorResponse if there is no such portal.
+					if describe.GetDescType() == "P" {
+						if _, err = s.writeMessage(bm.ParseComplete()); err != nil {
+							s.ErrorHandle(err)
+							continue
+						}
+					}
+				}
+				// sync
+				msg, err = s.nextMessage()
+				if err != nil {
+					if err == io.EOF {
+						s.log.Warningf("connection is closed")
+						return nil
+					}
+					s.ErrorHandle(err)
+					continue
+				}
+				println(msg)
+				msg, err = s.nextMessage()
+				if err != nil {
+					if err == io.EOF {
+						s.log.Warningf("connection is closed")
+						return nil
+					}
+					s.ErrorHandle(err)
+					continue
+				}
 			}
 			println(msg)
+
 		default:
 			s.ErrorHandle(ErrUnknowMessageType)
 			continue
@@ -94,34 +167,35 @@ func (s *session) HandleSimpleQueries() (err error) {
 	}
 }
 
-func (s *session) queryMsg(v fm.QueryMsg) error {
-	stmts, err := sql.Parse(strings.NewReader(v.GetStatements()))
+func (s *session) queryMsg(statements string) (*schema.SQLExecResult, error) {
+	var res *schema.SQLExecResult
+	stmts, err := sql.Parse(strings.NewReader(statements))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	for _, stmt := range stmts {
 		switch st := stmt.(type) {
 		case *sql.UseDatabaseStmt:
 			{
-				return ErrUseDBStatementNotSupported
+				return nil, ErrUseDBStatementNotSupported
 			}
 		case *sql.CreateDatabaseStmt:
 			{
-				return ErrCreateDBStatementNotSupported
+				return nil, ErrCreateDBStatementNotSupported
 			}
 		case *sql.SelectStmt:
 			err := s.selectStatement(st)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		case sql.SQLStmt:
-			_, err = s.database.SQLExecPrepared([]sql.SQLStmt{st}, nil, true)
+			res, err = s.database.SQLExecPrepared([]sql.SQLStmt{st}, nil, true)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return res, nil
 }
 
 func (s *session) selectStatement(st *sql.SelectStmt) error {
