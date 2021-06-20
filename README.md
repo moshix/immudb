@@ -63,7 +63,7 @@ Your own temporary immudb web console access to start using immudb in an [online
 | Implementation design   | Cryptographic commit log with parallel Merkle Tree,| 
 |                         | (sync/async) indexing with extended B-tree         |
 | Implementation language | Go                                                 |
-| Server OS(s)            | BSD, Linux, OS X, Solaris, Windows, IBM z/O        |
+| Server OS(s)            | BSD, Linux, OS X, Solaris, Windows, IBM z/OS       |
 | Embeddable              | Yes, optionally                                    |
 | Server APIs             | gRPC                                               |
 | Partition methods       | Sharding                                           |
@@ -144,7 +144,7 @@ We already learned about the following use cases from users:
 
 ### How to integrate immudb in your application
 
-We have SDKs available for the following programming languages:
+These SDKs are available for the following programming languages:
 
 1. Java [immudb4j](https://github.com/codenotary/immudb4j)
 2. Golang (`client` package in the immudb repo)
@@ -152,7 +152,7 @@ We have SDKs available for the following programming languages:
 4. Python [immudb-py](https://github.com/codenotary/immudb-py)
 5. Node.js [immudb-node](https://github.com/codenotary/immudb-node)
 
-To get started with development, there is a [quickstart in our documentation](https://docs.immudb.io/master/jumpstart.html): or pick a basic running sample from [immudb-client-examples](https://github.com/codenotary/immudb-client-examples).
+To get started writing your application with immudb immutable data storage, follow this [quickstart in our documentation](https://docs.immudb.io/master/jumpstart.html): or pick a basic running sample from [immudb-client-examples](https://github.com/codenotary/immudb-client-examples).
 
 Our [immudb Playground](https://play.codenotary.com) provides a guided environment to learn the Python SDK.
 
